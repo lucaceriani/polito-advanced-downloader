@@ -58,5 +58,5 @@ docs/_build/
 target/
 
 # My super secret stuff
-*.pkl
+*.bin
 secret.py
