@@ -125,6 +125,7 @@ class PolitoWeb:
         # scarica le videolezioni
 
         self.__downloadVideo(str(materie_sorted[m-1][n-1][0]), nomeCartellaCorso)
+        return 1
 
     def __generateFolderName(self, corso, codice):
         return corso + " (" + str(codice) + ")"
