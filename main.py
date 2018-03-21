@@ -7,10 +7,10 @@ def clear():
 if __name__=="__main__":
     sess=PolitoWeb()
     sess.setInterval(0, 350)
-    sess.setDumpName("crawled_oop.bin")
+    sess.setDumpName("crawled.bin")
     sess.setDlFolder("C:\\users\\Luca\\Videos\\video_lezioni")
 
-    print("Credenziali di accesso per didattica.polito.it")
+    print("Credenziali di accesso per http://didattica.polito.it")
     while not sess.login():
         print("Impossibile effettuare il login, riprovare!")
 
