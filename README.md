@@ -3,7 +3,7 @@ Script che permette di cercare tutte le videolezioni disponibili per il download
 
 ## Installazione
 #### Requisiti
-* Python 3
+* [Python 3](https://www.python.org/downloads/)
 * Modulo requests: `$ pip install requests` oppure `$ pip3 install requests`
 
 #### Selezione cartella download
