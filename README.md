@@ -14,7 +14,7 @@ Eseguire `$ python main.py` oppure `$ python3 main.py` oppure fare doppio click 
 
 Il programma chiederà i vostri dati di accesso al sito polito.it dopodiché effettuerà il _crawling_ di tutte le videolezioni disponibili nell'intervallo impostato.
 
-### Funzioni avanzate
+## Funzioni avanzate
 Se il programma non dovesse visualizzare tutte le videolezioni nel vostro corso (in particolare le più recenti) è necessario agire sull'intervcallo di crawling e, in particolare, in `main.py` aumentare il secondo valore di `sess.setInterval`
 
 Se non vi compare un corso o un professore dopo aver già effettuato il crawling è necessario cancellare il file `crawlink.bin` e rieseguire il programma.
