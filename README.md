@@ -1,7 +1,7 @@
 # PoliTo Advanced Downloader
 Script che permette di cercare tutte le videolezioni disponibili per il download.
 
-### Installazione
+## Installazione
 #### Requisiti
 * Python 3
 * Modulo requests: `$ pip install requests` oppure `$ pip3 install requests`
