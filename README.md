@@ -17,7 +17,7 @@ Il programma chiederà i vostri dati di accesso al sito polito.it dopodiché eff
 ## Funzioni avanzate
 Se il programma non dovesse visualizzare tutte le videolezioni nel vostro corso (in particolare le più recenti) è necessario agire sull'intervcallo di crawling e, in particolare, in `main.py` aumentare il secondo valore di `sess.setInterval`
 
-Se non vi compare un corso o un professore dopo aver già effettuato il crawling è necessario cancellare il file `crawlink.bin` e rieseguire il programma.
+Se non vi compare un corso o un professore dopo aver già effettuato il crawling è necessario cancellare il file `crawling.bin` e rieseguire il programma.
 
 ## Crediti
 Grazie a [gius-italy](https://github.com/gius-italy) per lo script del login e del download!
