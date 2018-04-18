@@ -1,5 +1,5 @@
 # PoliTo Advanced Downloader
-Script che permette di cercare tutte le videolezioni disponibili per il download.
+Script che permette di cercare, scaricare e mantenere aggiornate tutte le videolezioni disponibili per il download.
 
 ## Installazione
 #### Requisiti
