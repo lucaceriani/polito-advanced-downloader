@@ -30,9 +30,14 @@ class PolitoWeb:
         if not os.path.isdir(dlFolder): os.mkdir(dlFolder)
         self.dlFolder=dlFolder
 
-    def login(self):
-        user=input("Username: ")
-        passw=getpass.getpass("Password: ")
+    # @return boolean
+    def login(self, username=None, password=None):
+        if (username is None) and (password is None):
+            user=input("Username: ")
+            passw=getpass.getpass("Password: ")
+        else:
+            user=username
+            passw=password
         print("Logging in...")
 
         with requests.session() as s:
@@ -43,7 +48,7 @@ class PolitoWeb:
                 relaystate=rls[0]
             else:
                 log.error("Credenziali errate! Utente: %s", user)
-                return 0
+                return False
             samlresponse=html.unescape(re.findall('name="SAMLResponse".*value="(.*)"',r.text)[0])
             r=s.post('https://www.polito.it/Shibboleth.sso/SAML2/POST',data={'RelayState':relaystate,'SAMLResponse':samlresponse})
             r=s.post('https://login.didattica.polito.it/secure/ShibLogin.php')
@@ -54,10 +59,10 @@ class PolitoWeb:
                 login_cookie=s.cookies
             else:
                 log.critical("Qualcosa nel login non ha funzionato!")
-                return 0
+                return False
         # se sono arrivato qui vuol dire che sono loggato
         self.loginCookie=login_cookie
-        return 1
+        return True
 
     def crawl(self):
         '''
@@ -118,8 +123,13 @@ class PolitoWeb:
         while not (n>=1 and n<=i):
             n=int(input("Lezione: "))
 
+        update = ""
+        while not (update == "s" or update == "n"):
+            update = input("Mantenere la materia aggiornata all'ultima videolezione? [s/n] ")
+        update = (True if update == "s" else False)
+
         # se non c'è crea la cartella per ospitare la videolezione
-        nomeCartellaCorso=self.__generateFolderName(nome, materie_sorted[m-1][n-1][0])
+        nomeCartellaCorso=self.__generateFolderName(nome, materie_sorted[m-1][n-1][0], update)
         if not os.path.isdir(os.path.join(self.dlFolder, nomeCartellaCorso)):
             os.mkdir(os.path.join(self.dlFolder, nomeCartellaCorso))
         # scarica le videolezioni
@@ -127,18 +137,56 @@ class PolitoWeb:
         self.__downloadVideo(str(materie_sorted[m-1][n-1][0]), nomeCartellaCorso)
         return 1
 
-    def __generateFolderName(self, corso, codice):
-        return corso + " (" + str(codice) + ")"
+    def checkForUpdates(self):
+        for folderName in os.listdir(self.dlFolder):
+            idCorso = re.search(".?\(([0-9]+)\)", folderName)
+            if idCorso:
+                idCorso = idCorso.group(1)
+                if folderName.endswith("noupdate"):
+                    continue # se non voglio tenerla aggiornata
+
+                ultima = self.__findLastVideoNumber(folderName) # ultima videolezione nella cartella
+                links=self.__extractVideoLinks(idCorso)
+                quanteVideolezioni = len(links) # numero di videolezioni online
+                if quanteVideolezioni == ultima:
+                    continue # mi fermo qui
+
+                print ("Ci sono " + str(quanteVideolezioni-ultima) + " nuove videolezioni per "+ folderName + " le sto scaricando!")
+                lezioniDaScaricare = [ultima+1, quanteVideolezioni] # "range" delle videolezioni da scaricare
+                self.__downloadVideo(idCorso, folderName, lezioniDaScaricare)
 
 
-    def __downloadVideo(self, idCorso, nomeCartellaCorso):
+    # -------------- #
+    # classi private #
+    # -------------- #
+
+    # trova il numero dell'ultima lezione scaricata nella cartella
+    # @return integer
+    def __findLastVideoNumber(self, cartella):
+        cartella = os.path.join(self.dlFolder, cartella)
+        ultimoVideo = sorted(os.listdir(cartella))[-1] # l'ultimo video in ordine alfabetico
+        return int(re.search(".?([0-9]+).?", ultimoVideo).group(1))
+
+
+    def __generateFolderName(self, corso, codice, update):
+        suffix = ("" if update else " - noupdate")
+        return corso + " (" + str(codice) + ")" + suffix
+
+    def __getCodeFromFolderName(self, folderName):
+        return None
+
+    # @param inp = [start, end]
+    def __downloadVideo(self, idCorso, nomeCartellaCorso, inp=None):
         print("Sto cercando le videolezioni...")
         links=self.__extractVideoLinks(idCorso)
-        print(str(len(links))+" videolezioni trovate!")
-        print("Quali videolezioni vuoi scaricare? Inserisci un range o un numero...")
-        print("(Per esempio per scaricarle tutte scrivi: 1-"+str(len(links))+")")
+        quanteVideolezioni = len(links)
 
-        inp=input("Lezioni: ").split("-")
+        # mi serve passarlo come parametro dalla funzione checkForUpdates
+        if inp is None:
+            print(str(quanteVideolezioni)+" videolezioni trovate!")
+            print("Quali videolezioni vuoi scaricare? Inserisci un range o un numero...")
+            print("(Per esempio per scaricarle tutte scrivi: 1-"+str(len(links))+")")
+            inp=input("Lezioni: ").split("-")
 
         if len(inp)>0:
             st=int(inp[0])
@@ -147,6 +195,7 @@ class PolitoWeb:
                 url=self.__extractDownloadUrl(links[i-1])
                 self.__downloadSingleVideo(url, nomeCartellaCorso)
             print("--- Done! ---")
+            print(chr(7)) # suono
         else:
             print("Riprova")
 
