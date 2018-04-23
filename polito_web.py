@@ -38,6 +38,7 @@ class PolitoWeb:
         else:
             user=username
             passw=password
+
         print("Logging in...")
 
         with requests.session() as s:
@@ -137,13 +138,14 @@ class PolitoWeb:
         self.__downloadVideo(str(materie_sorted[m-1][n-1][0]), nomeCartellaCorso)
         return 1
 
+    # funzione che ricerca tutte le cartelle che hanno un numero tra parentesi
+    # che sarebbe l'id del corso (nome della cartella specificato da __generateFolderName)
+    # se le trova e ci sono nuove videolezioni procede a scaricarle
     def checkForUpdates(self):
         for folderName in os.listdir(self.dlFolder):
             idCorso = re.search(".?\(([0-9]+)\)", folderName)
-            if idCorso:
+            if idCorso and not folderName.endswith("noupdate"): # se la cartella è da aggiornare
                 idCorso = idCorso.group(1)
-                if folderName.endswith("noupdate"):
-                    continue # se non voglio tenerla aggiornata
 
                 ultima = self.__findLastVideoNumber(folderName) # ultima videolezione nella cartella
                 links=self.__extractVideoLinks(idCorso)
@@ -151,7 +153,7 @@ class PolitoWeb:
                 if quanteVideolezioni == ultima:
                     continue # mi fermo qui
 
-                print ("Ci sono " + str(quanteVideolezioni-ultima) + " nuove videolezioni per "+ folderName + " le sto scaricando!")
+                print ("Ci sono " + str(quanteVideolezioni-ultima) + " nuove videolezioni per "+ folderName.rsplit(' ', 1)[0] + "!")
                 lezioniDaScaricare = [ultima+1, quanteVideolezioni] # "range" delle videolezioni da scaricare
                 self.__downloadVideo(idCorso, folderName, lezioniDaScaricare)
 
