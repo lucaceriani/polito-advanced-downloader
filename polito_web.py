@@ -157,7 +157,8 @@ class PolitoWeb:
                 lezioniDaScaricare = [ultima+1, quanteVideolezioni] # "range" delle videolezioni da scaricare
                 self.__downloadVideo(idCorso, folderName, lezioniDaScaricare)
 
-
+    def bell():
+        print(chr(7))
     # -------------- #
     # classi private #
     # -------------- #
@@ -197,7 +198,7 @@ class PolitoWeb:
                 url=self.__extractDownloadUrl(links[i-1])
                 self.__downloadSingleVideo(url, nomeCartellaCorso)
             print("--- Done! ---")
-            print(chr(7)) # suono
+            self.bell()
         else:
             print("Riprova")
 

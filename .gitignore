@@ -60,3 +60,4 @@ target/
 # My super secret stuff
 *.bin
 secret.py
+*.bat

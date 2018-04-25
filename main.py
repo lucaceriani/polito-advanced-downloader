@@ -16,7 +16,7 @@ if __name__=="__main__":
     sess.setDumpName("crawled.bin")
     sess.setDlFolder("C:\\users\\Luca\\Videos\\video_lezioni")
 
-    print("PoliTo Advanced Downloader - v 0.1.1", end ="\n\n")
+    print("PoliTo Advanced Downloader - v 0.1.3", end ="\n\n")
 
     print("Credenziali di accesso per http://didattica.polito.it")
     while not sess.login():
@@ -24,6 +24,7 @@ if __name__=="__main__":
 
     sess.checkForUpdates()
     if args.update_only: # se dovevo solo cercare gli aggiornamenti mi fermo qui
+        sess.bell()
         exit(0)
 
     sess.crawl()
