@@ -1,16 +1,10 @@
 import requests
 import os
-import urllib
 import re
 import html
 import getpass
 import pickle
 import time
-import logging as log
-
-from requests import Response
-
-log.basicConfig(level=100, filename='log.log', format='%(asctime)s - %(levelname)s: %(message)s')
 
 
 class PolitoWeb:
@@ -21,9 +15,6 @@ class PolitoWeb:
     dump_name = None
     dl_folder = None
     lista = {}  # da definire vuota, non None!!
-
-    def __init__(self):
-        log.debug("Creata sessione PolitoWeb")
 
     def set_max_deep(self, max_deep):
         self.max_deep = max_deep
@@ -36,7 +27,8 @@ class PolitoWeb:
         self.max_deep = max_deep
 
     def set_dl_folder(self, dl_folder):
-        if not os.path.isdir(dl_folder): os.mkdir(dl_folder)
+        if not os.path.isdir(dl_folder):
+            os.mkdir(dl_folder)
         self.dl_folder = dl_folder
 
     # @return boolean
@@ -105,7 +97,7 @@ class PolitoWeb:
             prof = re.findall("<h3>(.*)</h3>", page)
             prof = (prof[0] if len(prof) > 0 else "")
 
-            anno = re.findall("<span class=\"small\">.*[0-9]{2}/[0-9]{2}/([0-9]{4})</span>", page);
+            anno = re.findall("<span class=\"small\">.*[0-9]{2}/[0-9]{2}/([0-9]{4})</span>", page)
             anno = (anno[0] if len(anno) > 0 else "")
 
             if len(materia) > 0:
@@ -298,5 +290,6 @@ class PolitoWeb:
                 d_url = r.headers['location']
             else:
                 print("Impossibile trovare i file da scaricare")
+                d_url = None
                 exit()
         return d_url
