@@ -1,6 +1,6 @@
 import os
 import argparse
-from src.polito_web import PolitoWeb
+from polito_web import PolitoWeb
 
 
 def clear():
