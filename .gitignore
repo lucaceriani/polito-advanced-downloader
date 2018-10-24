@@ -61,6 +61,7 @@ target/
 *.bin
 secret.py
 *.bat
+*.html
 
 # pycharm
 .idea/

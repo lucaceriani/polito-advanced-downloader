@@ -1,10 +1,45 @@
-import requests
 import os
 import re
 import html
-import getpass
-import pickle
 import time
+import pickle
+import getpass
+import requests
+from bs4 import BeautifulSoup
+
+
+class Link:
+    code = None
+    year = None
+    is_elearn = False
+
+    def __init__(self, code, year, is_elearn):
+        self.code = code
+        self.year = year
+        self.is_elearn = is_elearn
+
+    def get_year(self):
+        return self.year
+
+    def get_code(self):
+        return self.code
+
+    def get_is_elearn(self):
+        return self.is_elearn
+
+
+class Corso:
+    links = []
+    nome = None
+    periodo = None
+
+    def __init__(self, nome, periodo):
+        self.nome = nome
+        self.periodo = periodo
+        self.links = []
+
+    def add_link(self, link):
+        self.links.append(link)
 
 
 class PolitoWeb:
@@ -14,7 +49,7 @@ class PolitoWeb:
     max_deep = None
     dump_name = None
     dl_folder = None
-    lista = {}  # da definire vuota, non None!!
+    lista = []  # da definire vuota, non None!!
 
     def set_max_deep(self, max_deep):
         self.max_deep = max_deep
@@ -50,7 +85,7 @@ class PolitoWeb:
             if len(rls) > 0:
                 relaystate = rls[0]
             else:
-                #log.error("Credenziali errate! Utente: %s", user)
+                # log.error("Credenziali errate! Utente: %s", user)
                 return False
             samlresponse = html.unescape(re.findall('name="SAMLResponse".*value="(.*)"', r.text)[0])
             s.post('https://www.polito.it/Shibboleth.sso/SAML2/POST',
@@ -63,11 +98,72 @@ class PolitoWeb:
             if r.url == "https://didattica.polito.it/portal/page/portal/home/Studente":  # Login Successful
                 login_cookie = s.cookies
             else:
-                #log.critical("Qualcosa nel login non ha funzionato!")
+                # log.critical("Qualcosa nel login non ha funzionato!")
                 return False
         # se sono arrivato qui vuol dire che sono loggato
         self.login_cookie = login_cookie
         return True
+
+    def new_crawl(self):
+        """
+        Questa funzione va a prendere le videolezioni dalla sezione materiale (primo/secondo/terzo anno)
+        """
+        with requests.session() as s:
+            s.cookies = self.login_cookie
+            # per arrivare a pagina_anni non specifico l'anno perché tanto mi serve solo i
+            # link per primo/secondo/terzo anno
+            # pagina_anni = s.get("https://didattica.polito.it/portal/pls/portal/sviluppo.materiale.elenco?a=&t=E")
+            with open("prova.html", "r") as f:
+                pagina_anni = "".join(f.readlines())
+            soup = BeautifulSoup(pagina_anni, "html.parser")
+            tutti_gli_a = soup.find_all("a")
+
+            periodo = 0
+            nuovo_corso = None
+
+            for a in tutti_gli_a:
+
+                # encode e poi decode mi serve per renderla stringa e non StringSearchable (?) che mi
+                # viene restituito da soup
+
+                testo = str(a.contents[-1].encode("utf-8").decode("utf-8"))
+                link = str(a.get("href").encode("utf-8").decode("utf-8"))
+                is_elearn = False
+
+                if a.get("onclick") is not None:
+                    link = str(a.get("onclick").encode("utf-8").decode("utf-8"))
+                    is_elearn = True
+
+                # se trovo la parola anno nel link che sto considerando vuol dire che aumento l'anno in cui sono
+                # se parto da 0: 1=primo anno, 2=secondo, 3=terzo, 4=magistrale
+                if "anno" in testo or "magistrale" in testo:
+                    periodo += 1
+                    continue
+
+                titolo_corso = re.search("(.+ - .+) (\([0-9]+/[0-9]+\))", testo)
+                anno_corso = re.search("\(([0-9]+/[0-9]+)\)", testo)
+                codice_link = re.search("([0-9]+)", link)
+
+                if titolo_corso and codice_link and anno_corso:
+                    titolo_corso = titolo_corso.group(1)
+                    anno_corso = anno_corso.group(1)
+                    codice_link = codice_link.group(1)
+
+                    nuovo_corso = Corso(titolo_corso, periodo)
+                    nuovo_corso.add_link(Link(codice_link, anno_corso, is_elearn))
+                    self.lista.append(nuovo_corso)
+
+                # se trovo solo l'anno e non il titolo del corso aggiungo il link al nuovo_corso
+                # che sarebbe il corso che sstavo considerando al passo precendete
+                elif anno_corso and codice_link:
+                    anno_corso = anno_corso.group(1)
+                    codice_link = codice_link.group(1)
+                    nuovo_corso.add_link(Link(codice_link, anno_corso, is_elearn))
+
+        for corso in self.lista:
+            print(">>> " + corso.nome + " [" + str(corso.periodo) + "]")
+            for link in corso.links:
+                print("\t" + link.year + " - " + link.code + (" @" if link.is_elearn else ""))
 
     def crawl(self):
         """
@@ -81,7 +177,7 @@ class PolitoWeb:
         # controllo se esiste il file pickle di crawling...
         if os.path.isfile(self.dump_name):
             print("Lista caricata da file...")
-            #log.info("Lista crawling caricata da: %s", self.dump_name)
+            # log.info("Lista crawling caricata da: %s", self.dump_name)
             self.__carica_lista()
             return 0
 
@@ -258,7 +354,7 @@ class PolitoWeb:
                 self.dump_name is None or
                 self.dl_folder is None
         ):
-            #log.critical("Sessione non pronta!")
+            # log.critical("Sessione non pronta!")
             return 0
         else:
             return 1
