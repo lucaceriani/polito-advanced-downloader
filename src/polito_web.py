@@ -50,7 +50,7 @@ class PolitoWeb:
             if len(rls) > 0:
                 relaystate = rls[0]
             else:
-                log.error("Credenziali errate! Utente: %s", user)
+                #log.error("Credenziali errate! Utente: %s", user)
                 return False
             samlresponse = html.unescape(re.findall('name="SAMLResponse".*value="(.*)"', r.text)[0])
             s.post('https://www.polito.it/Shibboleth.sso/SAML2/POST',
@@ -63,7 +63,7 @@ class PolitoWeb:
             if r.url == "https://didattica.polito.it/portal/page/portal/home/Studente":  # Login Successful
                 login_cookie = s.cookies
             else:
-                log.critical("Qualcosa nel login non ha funzionato!")
+                #log.critical("Qualcosa nel login non ha funzionato!")
                 return False
         # se sono arrivato qui vuol dire che sono loggato
         self.login_cookie = login_cookie
@@ -81,7 +81,7 @@ class PolitoWeb:
         # controllo se esiste il file pickle di crawling...
         if os.path.isfile(self.dump_name):
             print("Lista caricata da file...")
-            log.info("Lista crawling caricata da: %s", self.dump_name)
+            #log.info("Lista crawling caricata da: %s", self.dump_name)
             self.__carica_lista()
             return 0
 
@@ -258,7 +258,7 @@ class PolitoWeb:
                 self.dump_name is None or
                 self.dl_folder is None
         ):
-            log.critical("Sessione non pronta!")
+            #log.critical("Sessione non pronta!")
             return 0
         else:
             return 1
