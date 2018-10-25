@@ -17,9 +17,7 @@ if __name__ == "__main__":
     # end command parser
 
     sess = PolitoWeb()
-    sess.set_interval(0, 350)
-    sess.set_dump_name("crawled.bin")
-    sess.set_dl_folder("D:\\video_lezioni")
+    sess.set_dl_folder("C:\\video_lezioni")
 
     print("PoliTo Advanced Downloader - v 0.1.3", end="\n\n")
 
@@ -33,6 +31,6 @@ if __name__ == "__main__":
         sess.bell()
         exit(0)
 
-    sess.crawl()
+    sess.new_crawl()
     while sess.menu():
         clear()

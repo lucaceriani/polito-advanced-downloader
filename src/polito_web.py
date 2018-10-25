@@ -5,24 +5,25 @@ import time
 import pickle
 import getpass
 import requests
+import urllib.parse
 from bs4 import BeautifulSoup
 
 
 class Link:
-    code = None
-    year = None
+    codice = None
+    anno = None
     is_elearn = False
 
-    def __init__(self, code, year, is_elearn):
-        self.code = code
-        self.year = year
+    def __init__(self, code: str, year: str, is_elearn: bool):
+        self.codice = code
+        self.anno = year
         self.is_elearn = is_elearn
 
     def get_year(self):
-        return self.year
+        return self.anno
 
     def get_code(self):
-        return self.code
+        return self.codice
 
     def get_is_elearn(self):
         return self.is_elearn
@@ -33,7 +34,7 @@ class Corso:
     nome = None
     periodo = None
 
-    def __init__(self, nome, periodo):
+    def __init__(self, nome: str, periodo: str):
         self.nome = nome
         self.periodo = periodo
         self.links = []
@@ -43,7 +44,6 @@ class Corso:
 
 
 class PolitoWeb:
-    base_video_url = 'https://didattica.polito.it/portal/pls/portal/sviluppo.videolezioni.vis?cor='
     login_cookie = None
     min_deep = None
     max_deep = None
@@ -112,9 +112,7 @@ class PolitoWeb:
             s.cookies = self.login_cookie
             # per arrivare a pagina_anni non specifico l'anno perché tanto mi serve solo i
             # link per primo/secondo/terzo anno
-            # pagina_anni = s.get("https://didattica.polito.it/portal/pls/portal/sviluppo.materiale.elenco?a=&t=E")
-            with open("prova.html", "r") as f:
-                pagina_anni = "".join(f.readlines())
+            pagina_anni = s.get("https://didattica.polito.it/portal/pls/portal/sviluppo.materiale.elenco?a=&t=E").text
             soup = BeautifulSoup(pagina_anni, "html.parser")
             tutti_gli_a = soup.find_all("a")
 
@@ -136,7 +134,7 @@ class PolitoWeb:
 
                 # se trovo la parola anno nel link che sto considerando vuol dire che aumento l'anno in cui sono
                 # se parto da 0: 1=primo anno, 2=secondo, 3=terzo, 4=magistrale
-                if "anno" in testo or "magistrale" in testo:
+                if "anno" in testo or "Magistrale" in testo:
                     periodo += 1
                     continue
 
@@ -145,11 +143,14 @@ class PolitoWeb:
                 codice_link = re.search("([0-9]+)", link)
 
                 if titolo_corso and codice_link and anno_corso:
-                    titolo_corso = titolo_corso.group(1)
+                    # pulisco il titolo del corso perché verrà usato come nome per una cartella quindi
+                    # prendo solo i caratteri alfanumerici
+                    titolo_corso = re.sub("'", "", titolo_corso.group(1))
+                    titolo_corso = re.sub("[^\w \-()]", "_", titolo_corso)
                     anno_corso = anno_corso.group(1)
                     codice_link = codice_link.group(1)
 
-                    nuovo_corso = Corso(titolo_corso, periodo)
+                    nuovo_corso = Corso(titolo_corso, str(periodo))
                     nuovo_corso.add_link(Link(codice_link, anno_corso, is_elearn))
                     self.lista.append(nuovo_corso)
 
@@ -161,9 +162,9 @@ class PolitoWeb:
                     nuovo_corso.add_link(Link(codice_link, anno_corso, is_elearn))
 
         for corso in self.lista:
-            print(">>> " + corso.nome + " [" + str(corso.periodo) + "]")
+            print(">>> " + corso.nome + " [" + corso.periodo + "]")
             for link in corso.links:
-                print("\t" + link.year + " - " + link.code + (" @" if link.is_elearn else ""))
+                print("\t" + link.anno + " - " + link.codice + (" @" if link.is_elearn else ""))
 
     def crawl(self):
         """
@@ -204,39 +205,58 @@ class PolitoWeb:
         self.__salva_lista()
 
     def menu(self):
-        materie_sorted = []
-        i = 0
-        for key, value in sorted(self.lista.items()):
-            i += 1
-            print("[%.3d] %s" % (i, key))
-            materie_sorted.append(value)
 
-        m = 0
-        while not (1 <= m <= len(materie_sorted)):  # aspetto una materia valida
-            m = int(input("Materia: "))
+        periodo = 0
 
-        i = 0
-        nome = self.__get_mat_name_from_id(m - 1)
-        for a in self.lista[nome]:  # stampo tutte le videolezioni di quella materia
-            i += 1
-            print(" [%.3d] %s - %s" % (i, a[1], a[2]))  # a[0]=codice a[1]=professore a[2]=anno
+        print("[1] - Primo anno")
+        print("[2] - Secondo anno")
+        print("[3] - Terzo anno")
+        print("[4] - Magistrale")
 
-        n = 0
-        while not (1 <= n <= i):
-            n = int(input("Lezione: "))
+        while not 1 <= periodo <= 4:
+            periodo = int(input("Scegli l'anno: "))
 
+        # conversione a stringa per comodità
+        periodo = str(periodo)
+
+        # creo una lista dei corsi che l'utente seleziona per aiutarmi successivamente
+        lista_corsi_selezionati = []
+        for corso in self.lista:
+            if corso.periodo == periodo:
+                lista_corsi_selezionati.append(corso)
+                print("[{:>2}] - {}".format(len(lista_corsi_selezionati), corso.nome))
+
+        n_corso_scelto = 0
+        while not 1 <= n_corso_scelto <= len(lista_corsi_selezionati):
+            n_corso_scelto = int(input("Scegli il corso: "))
+
+        # importante -1 perché sono indici di un vettore
+        corso_scelto = lista_corsi_selezionati[n_corso_scelto - 1]
+        print(corso_scelto.nome)
+
+        for link in corso_scelto.links:
+            print("[{}] - {}".format(corso_scelto.links.index(link) + 1, link.anno))
+
+        n_link_scelto = 0
+        while not 1 <= n_link_scelto <= len(corso_scelto.links):
+            n_link_scelto = int(input("Scegli l'anno delle videolezioni: "))
+
+        # importante il -1 come sopra...
+        link_scelto = corso_scelto.links[n_link_scelto - 1]
+
+        # chiedo all'utente se vuole mantenere aggiornate le videolezioni
         update = ""
         while not (update == "s" or update == "n"):
             update = input("Mantenere la materia aggiornata all'ultima videolezione? [s/n] ")
-        update = (True if update == "s" else False)
+        update = (True if update == "s" else False)  # update diventa bool
 
         # se non c'è crea la cartella per ospitare la videolezione
-        nome_cartella_corso = self.__generate_folder_name(nome, materie_sorted[m - 1][n - 1][0], update)
+        nome_cartella_corso = self.__generate_folder_name(corso_scelto, link_scelto, update)
         if not os.path.isdir(os.path.join(self.dl_folder, nome_cartella_corso)):
             os.mkdir(os.path.join(self.dl_folder, nome_cartella_corso))
         # scarica le videolezioni
 
-        self.__download_video(str(materie_sorted[m - 1][n - 1][0]), nome_cartella_corso)
+        self.__download_video(link_scelto, nome_cartella_corso)
         return 1
 
     # funzione che ricerca tutte le cartelle che hanno un numero tra parentesi
@@ -275,15 +295,31 @@ class PolitoWeb:
         ultimo_video = sorted(os.listdir(cartella))[-1]  # l'ultimo video in ordine alfabetico
         return int(re.search(".?([0-9]+).?", ultimo_video).group(1))
 
+    def __generate_video_url(self, link: Link):
+        base_url = "https://didattica.polito.it/portal/pls/portal/sviluppo.videolezioni.vis?cor="
+        base_url_e = "https://elearning.polito.it/gadgets/video/template_video.php?"
+        url = "<ERRORE NELLA GENERAZIONE URL>"
+        if not link.is_elearn:
+            url = base_url + link.codice
+        else:
+            with requests.session() as s:
+                s.cookies = self.login_cookie
+                data = s.get("https://didattica.polito.it/pls/portal30/sviluppo.materiale.json_dokeos_par?inc=" +
+                             link.codice).json()
+                url = base_url_e + urllib.parse.urlencode(data)
+        print(url)
+        return url
+
     @staticmethod
-    def __generate_folder_name(corso, codice, update):
+    def __generate_folder_name(corso: Corso, link: Link, update):
         suffix = ("" if update else " - noupdate")
-        return corso + " (" + str(codice) + ")" + suffix
+        codice = (link.codice if not link.is_elearn else "E_"+link.codice)
+        return "{} ({}) [{}]{}".format(corso.nome, link.anno.replace("/", "-"), codice, suffix)
 
     # @param inp = [start, end]
-    def __download_video(self, id_corso, nome_cartella_corso, inp=None):
+    def __download_video(self, link: Link, nome_cartella_corso, inp=None):
         print("Sto cercando le videolezioni...")
-        links = self.__extract_video_links(id_corso)
+        links = self.__extract_video_links(link)
         quante_videolezioni = len(links)
 
         # mi serve passarlo come parametro dalla funzione checkForUpdates
@@ -304,8 +340,8 @@ class PolitoWeb:
         else:
             print("Riprova")
 
-    def __extract_video_links(self, id_corso):
-        url = self.base_video_url + id_corso
+    def __extract_video_links(self, link: Link):
+        url = self.__generate_video_url(link)
 
         with requests.session() as s:
             s.cookies = self.login_cookie
