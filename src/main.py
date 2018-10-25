@@ -26,8 +26,8 @@ if __name__ == "__main__":
     while not sess.login():
         print("Impossibile effettuare il login, riprovare!")
 
-    sess.check_for_updates()
     if args.update_only:  # se dovevo solo cercare gli aggiornamenti mi fermo qui
+        sess.check_for_updates()
         sess.bell()
         exit(0)
 
