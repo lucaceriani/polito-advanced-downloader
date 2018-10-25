@@ -2,7 +2,6 @@ import os
 import re
 import html
 import time
-import pickle
 import getpass
 import requests
 import urllib.parse
@@ -45,28 +44,14 @@ class Corso:
 
 class PolitoWeb:
     login_cookie = None
-    min_deep = None
-    max_deep = None
-    dump_name = None
     dl_folder = None
     lista = []  # da definire vuota, non None!!
-
-    def set_max_deep(self, max_deep):
-        self.max_deep = max_deep
-
-    def set_dump_name(self, filename):
-        self.dump_name = filename
-
-    def set_interval(self, min_deep, max_deep):
-        self.min_deep = min_deep
-        self.max_deep = max_deep
 
     def set_dl_folder(self, dl_folder):
         if not os.path.isdir(dl_folder):
             os.mkdir(dl_folder)
         self.dl_folder = dl_folder
 
-    # @return boolean
     def login(self, username=None, password=None):
         if (username is None) and (password is None):
             user = input("Username: ")
@@ -104,7 +89,7 @@ class PolitoWeb:
         self.login_cookie = login_cookie
         return True
 
-    def new_crawl(self):
+    def crawl(self):
         """
         Questa funzione va a prendere le videolezioni dalla sezione materiale (primo/secondo/terzo anno)
         """
@@ -161,48 +146,10 @@ class PolitoWeb:
                     codice_link = codice_link.group(1)
                     nuovo_corso.add_link(Link(codice_link, anno_corso, is_elearn))
 
-        for corso in self.lista:
-            print(">>> " + corso.nome + " [" + corso.periodo + "]")
-            for link in corso.links:
-                print("\t" + link.anno + " - " + link.codice + (" @" if link.is_elearn else ""))
-
-    def crawl(self):
-        """
-        In teoria la funzione crawl non dovrebbe neanche esistere: bisognerebbe acquisire
-        i link delle videolezioni disponibili in maniera diversa, non tramite bruteforce.
-        """
-
-        if not self.__ready():
-            return 0
-
-        # controllo se esiste il file pickle di crawling...
-        if os.path.isfile(self.dump_name):
-            print("Lista caricata da file...")
-            # log.info("Lista crawling caricata da: %s", self.dump_name)
-            self.__carica_lista()
-            return 0
-
-        # altrimenti procedo con il crawling
-        for i in range(self.min_deep, self.max_deep):
-            page = self.__get_page(self.base_video_url + str(i))
-            if page.startswith("Access denied"):
-                continue
-
-            materia = re.findall("<div class=\"h2 text-primary\">(.*)</div>", page)
-            materia = (materia[0] if len(materia) > 0 else "")
-
-            prof = re.findall("<h3>(.*)</h3>", page)
-            prof = (prof[0] if len(prof) > 0 else "")
-
-            anno = re.findall("<span class=\"small\">.*[0-9]{2}/[0-9]{2}/([0-9]{4})</span>", page)
-            anno = (anno[0] if len(anno) > 0 else "")
-
-            if len(materia) > 0:
-                print("[" + str(i) + "] \"" + materia + "\" " + prof + " " + anno)
-                self.__aggiungi_in_lista(i, materia, prof, anno)
-
-        # salvo la Lista
-        self.__salva_lista()
+        # for corso in self.lista:
+        #    print(">>> " + corso.nome + " [" + corso.periodo + "]")
+        #    for link in corso.links:
+        #        print("\t" + link.anno + " - " + link.codice + (" @" if link.is_elearn else ""))
 
     def menu(self):
 
@@ -260,24 +207,25 @@ class PolitoWeb:
         return 1
 
     # funzione che ricerca tutte le cartelle che hanno un numero tra parentesi
-    # che sarebbe l'id del corso (nome della cartella specificato da __generateFolderName)
+    # che sarebbe l'id del corso (nome della cartella specificato da __generate_folder_name)
     # se le trova e ci sono nuove videolezioni procede a scaricarle
     def check_for_updates(self):
-        for folderName in os.listdir(self.dl_folder):
-            id_corso = re.search(".?\(([0-9]+)\)", folderName)
-            if id_corso and not folderName.endswith("noupdate"):  # se la cartella è da aggiornare
-                id_corso = id_corso.group(1)
+        for folder_name in os.listdir(self.dl_folder):
+            if folder_name.endswith("noupdate"):
+                continue
 
-                ultima = self.__find_last_video_number(folderName)  # ultima videolezione nella cartella
-                links = self.__extract_video_links(id_corso)
+            link = self.__decode_folder_name(folder_name)
+
+            if link is not None:
+                ultima = int(self.__find_last_video_number(folder_name))  # ultima videolezione nella cartella
+                links = self.__extract_video_links(link)
                 quante_videolezioni = len(links)  # numero di videolezioni online
                 if quante_videolezioni == ultima:
                     continue  # mi fermo qui
 
-                print("Ci sono " + str(quante_videolezioni - ultima) + " nuove videolezioni per " +
-                      str(folderName.rsplit(' ', 1)[0]) + "!")
+                print("Ci sono {} nuove videolezioni per {}!".format(quante_videolezioni - ultima,  folder_name))
                 lezioni_da_scaricare = [ultima + 1, quante_videolezioni]  # "range" delle videolezioni da scaricare
-                self.__download_video(id_corso, folderName, lezioni_da_scaricare)
+                self.__download_video(link, folder_name, lezioni_da_scaricare)
 
     @staticmethod
     def bell():
@@ -293,7 +241,12 @@ class PolitoWeb:
     def __find_last_video_number(self, cartella):
         cartella = os.path.join(self.dl_folder, cartella)
         ultimo_video = sorted(os.listdir(cartella))[-1]  # l'ultimo video in ordine alfabetico
-        return int(re.search(".?([0-9]+).?", ultimo_video).group(1))
+        ultimo_numero = re.search(".?([0-9]+).?", ultimo_video)
+        if ultimo_numero:
+            return ultimo_numero.group(1)
+        else:
+            print("Non ho trovato nessun video. La cartella è forse vuota (?)")
+            return 0
 
     def __generate_video_url(self, link: Link):
         base_url = "https://didattica.polito.it/portal/pls/portal/sviluppo.videolezioni.vis?cor="
@@ -307,14 +260,28 @@ class PolitoWeb:
                 data = s.get("https://didattica.polito.it/pls/portal30/sviluppo.materiale.json_dokeos_par?inc=" +
                              link.codice).json()
                 url = base_url_e + urllib.parse.urlencode(data)
-        print(url)
+        # print(url)
         return url
 
     @staticmethod
     def __generate_folder_name(corso: Corso, link: Link, update):
         suffix = ("" if update else " - noupdate")
-        codice = (link.codice if not link.is_elearn else "E_"+link.codice)
+        codice = (link.codice if not link.is_elearn else "E_" + link.codice)
         return "{} ({}) [{}]{}".format(corso.nome, link.anno.replace("/", "-"), codice, suffix)
+
+    @staticmethod
+    def __decode_folder_name(folder_name: str):
+        codice = re.search("\[([E_\d]+)\]", folder_name)
+        anno = re.search("\((\d+-\d+)\)", folder_name)
+
+        codice = codice.group(1) if codice else None
+        anno = anno.group(1) if anno else None
+        is_elearn = True if codice.startswith("E_") else False
+
+        if codice is None:
+            return None
+        else:
+            return Link(re.sub("E_", "", codice), anno, is_elearn)
 
     # @param inp = [start, end]
     def __download_video(self, link: Link, nome_cartella_corso, inp=None):
@@ -351,7 +318,7 @@ class PolitoWeb:
                 links = re.findall('href="(sviluppo\.videolezioni\.vis.*lez=\w*)">', r.text)
                 for i in range(len(links)):
                     links[i] = 'https://didattica.polito.it/pls/portal30/' + html.unescape(links[i])
-            elif "elearning.polito.it" in url:  # mantenuto per legacy
+            elif "elearning.polito.it" in url:
                 links = re.findall("href='(template_video\.php\?[^']*)", r.text)
                 for i in range(len(links)):
                     links[i] = 'https://elearning.polito.it/gadgets/video/' + html.unescape(links[i])
@@ -360,46 +327,15 @@ class PolitoWeb:
                 return 0
             return links
 
-    def __get_mat_name_from_id(self, n):
-        i = 0
-        for key, value in sorted(self.lista.items()):
-            if i == n:
-                return key
-            i += 1
-        return None
-
-    def __salva_lista(self):
-        with open(self.dump_name, "wb") as f:
-            pickle.dump(self.lista, f)
-
-    def __carica_lista(self):
-        with open(self.dump_name, "rb") as f:
-            self.lista = pickle.load(f)
-
-    def __aggiungi_in_lista(self, n, nome, prof, anno):
-        if not (nome in self.lista):
-            self.lista[nome] = []  # se non ci sono mai passato inizializzo la lista
-
-        self.lista[nome].append([n, prof, anno])  # appendo le nuove info alla fine della lista
-
     def __ready(self):
         if (
                 self.login_cookie is None or
-                self.min_deep is None or
-                self.max_deep is None or
-                self.dump_name is None or
                 self.dl_folder is None
         ):
             # log.critical("Sessione non pronta!")
             return 0
         else:
             return 1
-
-    def __get_page(self, url):
-        s = requests.session()
-        s.cookies = self.login_cookie
-        page = s.get(url, allow_redirects=False)
-        return page.text if page else ""
 
     def __download_single_video(self, url, nome_cartella_corso):
         filename = url.split('/')[-1]

@@ -19,7 +19,7 @@ if __name__ == "__main__":
     sess = PolitoWeb()
     sess.set_dl_folder("C:\\video_lezioni")
 
-    print("PoliTo Advanced Downloader - v 0.1.3", end="\n\n")
+    print("PoliTo Advanced Downloader - v 0.2.0", end="\n\n")
 
     print("Credenziali di accesso per http://didattica.polito.it")
     # si può usare sess.login('il_tuo_user', 'la_tua_password') per evitare di dover fare il login ogni votla
@@ -31,6 +31,6 @@ if __name__ == "__main__":
         sess.bell()
         exit(0)
 
-    sess.new_crawl()
+    sess.crawl()
     while sess.menu():
         clear()
