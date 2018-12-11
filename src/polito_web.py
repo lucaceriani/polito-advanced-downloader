@@ -49,8 +49,11 @@ class PolitoWeb:
 
     def set_dl_folder(self, dl_folder):
         if not os.path.isdir(dl_folder):
+            print("La cartella {} non esiste! La creo...".format(dl_folder));
             os.mkdir(dl_folder)
+            print("Cartella {} creata!".format(dl_folder))
         self.dl_folder = dl_folder
+        print("Cartella di download impostata: {}".format(dl_folder))
 
     def login(self, username=None, password=None):
         if (username is None) and (password is None):

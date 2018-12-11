@@ -1,10 +1,17 @@
-import os
 import argparse
+import json
+import os
+
 from polito_web import PolitoWeb
 
 
 def clear():
     os.system('cls' if os.name == 'nt' else 'clear')
+
+
+def esci(x):
+    input()
+    exit(x)
 
 
 if __name__ == "__main__":
@@ -16,15 +23,29 @@ if __name__ == "__main__":
     args = parser.parse_args()
     # end command parser
 
+    print("PoliTo Advanced Downloader - v 0.3.0")
+
+    settings = None
+    try:
+        with open("settings.json") as f:
+            settings = json.load(f)
+    except:
+        print("Impossibile aprire il file di configurazione (settings.json)! Verificare di averlo rinominato"+
+              "correttamente e di aver rispettato la sintassi.")
+        esci(1)
+
     sess = PolitoWeb()
-    sess.set_dl_folder("C:\\video_lezioni")
+    sess.set_dl_folder(settings['download_folder'])
 
-    print("PoliTo Advanced Downloader - v 0.2.0", end="\n\n")
-
-    print("Credenziali di accesso per http://didattica.polito.it")
-    # si può usare sess.login('il_tuo_user', 'la_tua_password') per evitare di dover fare il login ogni votla
-    while not sess.login():
-        print("Impossibile effettuare il login, riprovare!")
+    if settings['credentials']['enabled']:
+        if not sess.login(settings['credentials']['username'], settings['credentials']['password']):
+            print("Impossibile effetture il login con le credenziali impostate in settings.json")
+            esci(1)
+    else:
+        print("Acesso automatico disabilitato...")
+        print("Credenziali di accesso per http://didattica.polito.it")
+        while not sess.login():
+            print("Impossibile effettuare il login, riprovare!")
 
     if args.update_only:  # se dovevo solo cercare gli aggiornamenti mi fermo qui
         sess.check_for_updates()
@@ -34,3 +55,5 @@ if __name__ == "__main__":
     sess.crawl()
     while sess.menu():
         clear()
+
+

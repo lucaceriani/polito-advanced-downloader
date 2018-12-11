@@ -1,0 +1,8 @@
+{
+  "download_folder": "c:/dl_videolezioni" ,
+  "credentials" : {
+    "enabled": false,
+    "username": "s098765",
+    "password": "password"
+  }
+}

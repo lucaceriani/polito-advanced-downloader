@@ -4,12 +4,16 @@ Script che permette di cercare, scaricare e mantenere aggiornate tutte le videol
 ## Installazione
 #### Requisiti
 * [Python 3](https://www.python.org/downloads/)
-* Modulo requests: `$ pip install -r requirements.txt` oppure `$ pip3 install -r requirements.txt`
+* **Importante!** Installare le dipendenze con: `$ pip install -r requirements.txt` oppure `$ pip3 install -r requirements.txt`
 
 ## Esecuzione
-#### Selezione cartella download
-In `main.py` modificare il parametro `sess.setDlFolder` scegliendo la cartella di destinazioni per le videolezioni
-scaricate.
+#### Modifica delle impostazioni
+* Rinominare il file `settings.json.dist` in `settings.json`
+* Aprire `settings.json`
+* Modificare la cartella di download
+
+Se si vuole abilitare l'accesso automatico è sufficiente scrivere *true* al posto di *false* e completare
+con le proprie credenziali il file.
 
 #### Esecuzione
 Eseguire `$ python main.py` oppure `$ python3 main.py` oppure fare doppio click su `main.py`.
