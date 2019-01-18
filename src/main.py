@@ -23,7 +23,7 @@ if __name__ == "__main__":
     args = parser.parse_args()
     # end command parser
 
-    print("PoliTo Advanced Downloader - v 0.3.0")
+    print("PoliTo Advanced Downloader - v 0.3.1")
 
     settings = None
     try:

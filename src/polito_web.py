@@ -218,6 +218,9 @@ class PolitoWeb:
                 continue
 
             link = self.__decode_folder_name(folder_name)
+            # se non riesco a decodificare la cartella, continuo
+            if link is None:
+                continue
 
             if link is not None:
                 ultima = int(self.__find_last_video_number(folder_name))  # ultima videolezione nella cartella
@@ -279,11 +282,11 @@ class PolitoWeb:
 
         codice = codice.group(1) if codice else None
         anno = anno.group(1) if anno else None
-        is_elearn = True if codice.startswith("E_") else False
 
         if codice is None:
             return None
         else:
+            is_elearn = True if codice.startswith("E_") else False
             return Link(re.sub("E_", "", codice), anno, is_elearn)
 
     # @param inp = [start, end]
