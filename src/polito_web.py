@@ -318,7 +318,7 @@ class PolitoWeb:
 
         with requests.session() as s:
             s.cookies = self.login_cookie
-            r = s.get(url)
+            r = s.get(url, verify=False)
 
             if "didattica.polito.it" in url:
                 links = re.findall('href="(sviluppo\.videolezioni\.vis.*lez=\w*)">', r.text)
@@ -353,7 +353,7 @@ class PolitoWeb:
     def __extract_download_url(self, url):
         with requests.session() as s:
             s.cookies = self.login_cookie
-            r = s.get(url)
+            r = s.get(url, verify=False)
             if "didattica.polito.it" in url:
                 d_url = re.findall('href="(.*)".*Video', r.text)[0]
                 r = s.get('https://didattica.polito.it' + html.unescape(d_url), allow_redirects=False)
